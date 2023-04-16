@@ -1,0 +1,59 @@
+const os = require('os');
+const fs = require('fs');
+const http = require('http');
+const url = require('url');
+const { spawn } = require('child_process');
+function getSystemInfo() {
+  const totalMemory = os.totalmem();
+  const freeMemory = os.freemem();
+  const usedMemory = totalMemory - freeMemory;
+  const cpuLoad = os.loadavg()[0];
+  return {
+    totalMemory: `${(totalMemory / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    usedMemory: `${(usedMemory / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    cpuLoad: `${(cpuLoad * 100).toFixed(2)}%`,
+  };
+}
+function getDiskInfo() {
+  const disks = os.platform() === 'win32' ? ['c:'] : ['/'];
+  const diskInfo = disks.map((disk) => {
+    const diskTotal = os.totalmem();
+    const diskFree = os.freemem();
+    const diskUsed = diskTotal - diskFree;
+    return {
+      disk,
+      diskTotal: `${(diskTotal / 1024 / 1024 / 1024).toFixed(2)} GB`,
+      diskUsed: `${(diskUsed / 1024 / 1024 / 1024).toFixed(2)} GB`,
+      diskFree: `${(diskFree / 1024 / 1024 / 1024).toFixed(2)} GB`,
+    };
+  });
+  return diskInfo;
+}
+function getNetworkInfo(callback) {
+  http.get('http://speedtest.tele2.net/speedtest/upload.php', (res) => {
+    const { statusCode } = res;
+    let error;
+    if (statusCode !== 200) {
+      error = new Error(`请求失败，状态码：${statusCode}`);
+    }
+    if (error) {
+      res.resume();
+      return callback(error);
+    }
+    res.setEncoding('utf-8');
+    let rawData = '';
+    res.on('data', (chunk) => {
+      rawData += chunk;
+    });
+    res.on('end', () => {
+      try {
+        const uploadSpeed = rawData.length / (10 * 1000);
+        callback(null, { uploadSpeed: `${uploadSpeed.toFixed(2)} KB/s` });
+      } catch (error) {
+        callback(error);
+      }
+    });
+  }).on('error', (error) => {
+    callback(error);
+  });
+}
