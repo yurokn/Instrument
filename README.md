@@ -8,6 +8,10 @@ This project aims to bring a node.js or js Instrument.
 
 * Convert url params
 
+* A python calculator
+
+* A monitor to record computer status
+
 
 * Make logs
 
